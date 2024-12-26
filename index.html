@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Handling Data</title>
+  <style>
+    pre {
+      background-color: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ccc;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: "Courier New", monospace;
+    }
+  </style>
+</head>
+<body>
+<h1>Find Handling Data</h1>
+<input type="text" id="handlingNameInput" placeholder="Enter handlingName" />
+<button onclick="findHandlingData()">Find</button>
+<input type="checkbox" name="inmortal" id="inmortal"> Automatically make car indestructible
+<pre id="result"></pre>
+
+<script>
+  function replaceDamageValues(xmlString) {
+    return xmlString
+            .replace(/<fCollisionDamageMult value="[^"]+?"/, '<fCollisionDamageMult value="0.000001"')
+            .replace(/<fWeaponDamageMult value="[^"]+?"/, '<fWeaponDamageMult value="0.000001"')
+            .replace(/<fDeformationDamageMult value="[^"]+?"/, '<fDeformationDamageMult value="0.000001"')
+            .replace(/<fEngineDamageMult value="[^"]+?"/, '<fEngineDamageMult value="0.000001"');
+  }
+
+  async function findHandlingData() {
+    const handlingName = document.getElementById('handlingNameInput').value.trim().toUpperCase(); // Convert input to uppercase
+    if (!handlingName) {
+      alert('Please enter a handlingName');
+      return;
+    }
+
+    try {
+      const response = await fetch('everything.xml'); // Replace with the actual path to your XML file
+      if (!response.ok) {
+        throw new Error('Failed to load XML file');
+      }
+
+      const xmlText = await response.text();
+
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+
+      const items = xmlDoc.getElementsByTagName('Item');
+      for (let item of items) {
+        const nameElement = item.getElementsByTagName('handlingName')[0];
+        if (nameElement && nameElement.textContent.trim().toUpperCase() === handlingName) {
+          const serializer = new XMLSerializer();
+          let rawXML = serializer.serializeToString(item);
+          if (document.getElementById('inmortal').checked) {
+            rawXML = replaceDamageValues(rawXML);
+          }
+          const escapedXML = rawXML
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+          document.getElementById('result').innerHTML = `<code>${escapedXML}</code>`;
+          return;
+        }
+      }
+
+      document.getElementById('result').textContent = `No item found for handlingName "${handlingName}"`;
+    } catch (error) {
+      console.error(error);
+      document.getElementById('result').textContent = 'An error occurred while processing the XML file.';
+    }
+  }
+</script>
+</body>
+</html>
