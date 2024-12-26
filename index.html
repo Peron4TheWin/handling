@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find Handling Data</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/notie/dist/notie.min.css">
   <style>
     pre {
       background-color: #f4f4f4;
@@ -13,16 +15,46 @@
       word-wrap: break-word;
       font-family: "Courier New", monospace;
     }
+    .prevent-select {
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      float: right;
+    }
+    .notie-container {
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
-<h1>Find Handling Data</h1>
-<input type="text" id="handlingNameInput" placeholder="Enter handlingName" />
-<button onclick="findHandlingData()">Find</button>
-<input type="checkbox" name="inmortal" id="inmortal"> Automatically make car indestructible
-<pre id="result"></pre>
-
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h1 class="mb-0">Buscador de handling por modelo</h1>
+    </div>
+    <div class="card-body">
+      <form>
+        <div class="form-group">
+          <label for="handlingNameInput">Handling Name</label>
+          <input type="text" id="handlingNameInput" class="form-control" placeholder="Enter handlingName" />
+        </div>
+        <button type="button" onclick="findHandlingData()" class="btn btn-primary">Find</button>
+        <div class="form-check mt-3">
+          <input type="checkbox" class="form-check-input" name="inmortal" id="inmortal">
+          <label class="form-check-label" for="inmortal">Automatically make car indestructible</label>
+        </div>
+      </form>
+      <pre id="result" class="mt-3"></pre>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/notie"></script>
 <script>
+  function copytoClipboard() {
+    var copyText = document.getElementById("result");
+    navigator.clipboard.writeText(copyText.textContent);
+    notie.alert({ type: 'success', text: 'Copiado al portapapeles!', time: 1 }) // Hides after 2 seconds
+  }
   function replaceDamageValues(xmlString) {
     return xmlString
             .replace(/<fCollisionDamageMult value="[^"]+?"/, '<fCollisionDamageMult value="0.000001"')
@@ -34,14 +66,14 @@
   async function findHandlingData() {
     const handlingName = document.getElementById('handlingNameInput').value.trim().toUpperCase(); // Convert input to uppercase
     if (!handlingName) {
-      alert('Please enter a handlingName');
+      alert('Ingrese un nombre valido');
       return;
     }
 
     try {
-      const response = await fetch('everything.xml'); // Replace with the actual path to your XML file
+      const response = await fetch('everything.xml');
       if (!response.ok) {
-        throw new Error('Failed to load XML file');
+        throw new Error('No se pudo cargar el everything.xml');
       }
 
       const xmlText = await response.text();
@@ -63,7 +95,7 @@
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
 
-          document.getElementById('result').innerHTML = `<code>${escapedXML}</code>`;
+          document.getElementById('result').innerHTML = `<button onclick="copytoClipboard()" class="prevent-select">Copy</button><code>${escapedXML}</code>`;
           return;
         }
       }
