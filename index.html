@@ -51,7 +51,7 @@
 <script src="https://unpkg.com/notie"></script>
 <script>
   function copytoClipboard() {
-    var copyText = document.getElementById("result");
+    var copyText = document.getElementById("finishedcode");
     navigator.clipboard.writeText(copyText.textContent);
     notie.alert({ type: 'success', text: 'Copiado al portapapeles!', time: 1 }) // Hides after 2 seconds
   }
@@ -95,7 +95,7 @@
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
 
-          document.getElementById('result').innerHTML = `<button onclick="copytoClipboard()" class="prevent-select">Copy</button><code>${escapedXML}</code>`;
+          document.getElementById('result').innerHTML = `<button onclick="copytoClipboard()" class="prevent-select">Copy</button><code id="finishedcode">${escapedXML}</code>`;
           return;
         }
       }
