@@ -24,6 +24,27 @@
     .notie-container {
       box-shadow: none;
     }
+
+    /* Styling for autocomplete suggestions */
+    .autocomplete-suggestions {
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      position: absolute;
+      width: 100%;
+      z-index: 100;
+      background-color: white;
+      display: none;
+    }
+
+    .autocomplete-suggestion {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-suggestion:hover {
+      background-color: #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -33,10 +54,17 @@
       <h1 class="mb-0">Buscador de handling por modelo</h1>
     </div>
     <div class="card-body">
-      <form>
+      <form onkeydown="return event.key != 'Enter';">
+        <h4>(Solo hace falta una de estas dos opciones)</h4>
         <div class="form-group">
-          <label for="handlingNameInput">Handling Name</label>
-          <input type="text" id="handlingNameInput" class="form-control" placeholder="Enter handlingName" />
+          <label for="handlingNameInput">Model ID</label>
+          <input type="text" id="handlingNameInput" class="form-control" placeholder="Introduce el model id (buffalo4 por ejemplo)" />
+          <div id="name-suggestions" class="autocomplete-suggestions"></div> <!-- Suggestions for Model ID -->
+        </div>
+        <div class="form-group">
+          <label for="handlingTypeInput">Nombre real</label>
+          <input type="text" id="handlingTypeInput" class="form-control" placeholder="Introduce el nombre real del auto (buffalo stx por ejemplo)" />
+          <div id="type-suggestions" class="autocomplete-suggestions"></div> <!-- Suggestions for Real Name -->
         </div>
         <button type="button" onclick="findHandlingData()" class="btn btn-primary">Find</button>
         <div class="form-check mt-3">
@@ -48,8 +76,98 @@
     </div>
   </div>
 </div>
+
 <script src="https://unpkg.com/notie"></script>
 <script>
+  // Fetch car data from the JSON file
+  async function fetchCarData() {
+    try {
+      const response = await fetch('cars.json');  // Request the cars.json file
+      const cars = await response.json();  // Parse the JSON data into an array
+      return cars;
+    } catch (error) {
+      console.error('Error fetching the JSON file:', error);
+      return [];
+    }
+  }
+
+  // Function to handle search and autocomplete for Model ID and Real Name
+  async function handleSearch(inputElement, suggestionsDiv, searchKey) {
+    const cars = await fetchCarData();  // Fetch car data from the JSON
+    const query = inputElement.value.toLowerCase();
+    suggestionsDiv.innerHTML = '';  // Clear previous suggestions
+
+    if (query) {
+      const filteredCars = cars.filter(car => car[searchKey].toLowerCase().includes(query));
+      if (filteredCars.length > 0) {
+        suggestionsDiv.style.display = 'block';
+        filteredCars.forEach(car => {
+          const suggestionItem = document.createElement('div');
+          suggestionItem.classList.add('autocomplete-suggestion');
+          suggestionItem.textContent = car[searchKey];
+          suggestionItem.dataset.modelid = car.modelid; // Store model ID in data attribute
+          suggestionItem.dataset.dlc = car.dlc; // Store DLC in data attribute
+
+          // Add click event to set selected car info
+          suggestionItem.addEventListener('click', () => {
+            inputElement.value = car[searchKey];
+            if (searchKey==="name" || searchKey==="modelid") {
+              document.getElementById('handlingTypeInput').value = car.name; // Set real name
+              document.getElementById('handlingNameInput').value = car.modelid;
+            }
+            suggestionsDiv.innerHTML = '';  // Clear suggestions after selection
+          });
+
+          suggestionsDiv.appendChild(suggestionItem);
+        });
+      } else {
+        suggestionsDiv.style.display = 'none';
+      }
+    } else {
+      suggestionsDiv.style.display = 'none';
+    }
+  }
+
+  // Event listeners for autocomplete
+  document.getElementById('handlingNameInput').addEventListener('input', (event) => {
+    handleSearch(event.target, document.getElementById('name-suggestions'), 'modelid');
+  });
+
+  document.getElementById('handlingTypeInput').addEventListener('input', (event) => {
+    handleSearch(event.target, document.getElementById('type-suggestions'), 'name');
+  });
+
+  // Function to find handling data based on the selected inputs
+  function findHandlingData() {
+    const modelID = document.getElementById('handlingNameInput').value.trim();
+    const carName = document.getElementById('handlingTypeInput').value.trim();
+
+    if (!modelID && !carName) {
+      notie.alert(3, 'Please provide either a Model ID or Car Name.', 3);
+      return;
+    }
+
+    // Here you would query your data or API for handling info based on modelID or carName
+    // For now, we'll simulate it by showing what was entered
+    let resultText = `Searching for handling data...\n\n`;
+    if (modelID) {
+      resultText += `Model ID: ${modelID}\n`;
+    }
+    if (carName) {
+      resultText += `Car Name: ${carName}\n`;
+    }
+    document.getElementById('result').textContent = resultText;
+  }
+
+  // Hide autocomplete suggestions when clicked outside
+  document.addEventListener('click', function(event) {
+    const suggestionsDivs = document.querySelectorAll('.autocomplete-suggestions');
+    suggestionsDivs.forEach(suggestionsDiv => {
+      if (!event.target.closest(`#${suggestionsDiv.id}`)) {
+        suggestionsDiv.style.display = 'none';
+      }
+    });
+  });
   function copytoClipboard() {
     var copyText = document.getElementById("finishedcode");
     navigator.clipboard.writeText(copyText.textContent);
@@ -62,6 +180,12 @@
             .replace(/<fDeformationDamageMult value="[^"]+?"/, '<fDeformationDamageMult value="0.000001"')
             .replace(/<fEngineDamageMult value="[^"]+?"/, '<fEngineDamageMult value="0.000001"');
   }
+  document.body.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Prevent the default form submission
+      findHandlingData();     // Call the custom function
+    }
+  });
 
   async function findHandlingData() {
     const handlingName = document.getElementById('handlingNameInput').value.trim().toUpperCase(); // Convert input to uppercase
@@ -91,9 +215,9 @@
             rawXML = replaceDamageValues(rawXML);
           }
           const escapedXML = rawXML
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;');
 
           document.getElementById('result').innerHTML = `<button onclick="copytoClipboard()" class="prevent-select">Copy</button><code id="finishedcode">${escapedXML}</code>`;
           return;
