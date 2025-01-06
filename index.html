@@ -66,6 +66,11 @@
           <input type="text" id="handlingTypeInput" class="form-control" placeholder="Introduce el nombre real del auto (buffalo stx por ejemplo)" />
           <div id="type-suggestions" class="autocomplete-suggestions"></div> <!-- Suggestions for Real Name -->
         </div>
+        <div class="form-group">
+          <label for="handlingTypeInput" >DLC</label>
+          <input type="text" id="handlingDLC" onkeydown="return false" class="form-control" placeholder="El dlc en el que se encuentra el vehiculo, esto no es rellenable" />
+          <div class="autocomplete-suggestions"></div> <!-- Suggestions for Real Name -->
+        </div>
         <button type="button" onclick="findHandlingData()" class="btn btn-primary">Find</button>
         <div class="form-check mt-3">
           <input type="checkbox" class="form-check-input" name="inmortal" id="inmortal">
@@ -114,6 +119,11 @@
             if (searchKey==="name" || searchKey==="modelid") {
               document.getElementById('handlingTypeInput').value = car.name; // Set real name
               document.getElementById('handlingNameInput').value = car.modelid;
+              if (car.dlc.toString().toLowerCase()==="titleupdate") {
+                document.getElementById('handlingDLC').value = "Vanilla game (no dlc)";
+              } else {
+                document.getElementById('handlingDLC').value = car.dlc;
+              }
             }
             suggestionsDiv.innerHTML = '';  // Clear suggestions after selection
           });
